@@ -26,6 +26,18 @@ uvicorn main:app --host 0.0.0.0 --port 8000
 
 ## Endpoints
 
+### GET /positions/partner
+Busca as posições do parceiro diretamente da API do BTG.
+
+Headers necessários:
+- `X-API-Key: finacap2025`
+
+### POST /positions/partner/refresh
+Atualiza e busca as posições do parceiro.
+
+Headers necessários:
+- `X-API-Key: finacap2025`
+
 ### POST /webhook/positions
 Recebe os dados da webhook do BTG e salva em arquivo JSON.
 
