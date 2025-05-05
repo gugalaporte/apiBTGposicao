@@ -18,7 +18,6 @@ DATA_DIR.mkdir(exist_ok=True)
 # Configurações da API BTG
 BTG_API_URL = "https://api.btgpactual.com/iaas-api-position/api/v1/position/partner"
 API_KEY = "finacap2025"
-ACCESS_TOKEN = "eyJ0eXAiOMNSBHDBDxhUnman9u.eyJ0abdhb2F1jkGfrnmkmGFj.eyJ0sadsadsadas"  # Substitua pelo token real
 
 class Error(BaseModel):
     code: Optional[str] = None
@@ -78,15 +77,9 @@ async def get_partner_positions(
                 headers={
                     "accept": "application/json",
                     "x-id-partner-request": request_id,
-                    "access_token": ACCESS_TOKEN
+                    "X-API-Key": api_key
                 }
             )
-            
-            if response.status_code == 401:
-                raise HTTPException(
-                    status_code=401,
-                    detail="Token de acesso não autorizado ou expirado"
-                )
             
             response.raise_for_status()
             data = response.json()
@@ -122,15 +115,9 @@ async def refresh_partner_positions(
                 headers={
                     "accept": "application/json",
                     "x-id-partner-request": request_id,
-                    "access_token": ACCESS_TOKEN
+                    "X-API-Key": api_key
                 }
             )
-            
-            if refresh_response.status_code == 401:
-                raise HTTPException(
-                    status_code=401,
-                    detail="Token de acesso não autorizado ou expirado"
-                )
             
             refresh_response.raise_for_status()
             
