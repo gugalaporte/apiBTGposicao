@@ -7,6 +7,7 @@ import os
 from pathlib import Path
 import httpx
 import asyncio
+import uuid
 
 app = FastAPI(title="BTG Positions Webhook")
 
@@ -17,6 +18,7 @@ DATA_DIR.mkdir(exist_ok=True)
 # Configurações da API BTG
 BTG_API_URL = "https://api.btgpactual.com/iaas-api-position/api/v1/position/partner"
 API_KEY = "finacap2025"
+ACCESS_TOKEN = "eyJ0eXAiOMNSBHDBDxhUnman9u.eyJ0abdhb2F1jkGfrnmkmGFj.eyJ0sadsadsadas"  # Substitua pelo token real
 
 class Error(BaseModel):
     code: Optional[str] = None
@@ -32,6 +34,12 @@ class PositionData(BaseModel):
 class WebhookPayload(BaseModel):
     errors: List[Error]
     response: PositionData
+
+class PartnerPositionResponse(BaseModel):
+    url: str
+    dateTime: datetime
+    numberOfAccounts: int
+    fileSize: int
 
 async def verify_api_key(x_api_key: str = Header(...)):
     if x_api_key != API_KEY:
@@ -61,11 +69,25 @@ async def get_partner_positions(
     Faz uma chamada para a API do BTG e retorna os dados.
     """
     try:
+        # Gerar UUID único para a requisição
+        request_id = str(uuid.uuid4())
+        
         async with httpx.AsyncClient() as client:
             response = await client.get(
                 BTG_API_URL,
-                headers={"X-API-Key": api_key}
+                headers={
+                    "accept": "application/json",
+                    "x-id-partner-request": request_id,
+                    "access_token": ACCESS_TOKEN
+                }
             )
+            
+            if response.status_code == 401:
+                raise HTTPException(
+                    status_code=401,
+                    detail="Token de acesso não autorizado ou expirado"
+                )
+            
             response.raise_for_status()
             data = response.json()
             
@@ -75,7 +97,8 @@ async def get_partner_positions(
             return {
                 "status": "success",
                 "data": data,
-                "file": str(filename)
+                "file": str(filename),
+                "request_id": request_id
             }
     except httpx.HTTPError as e:
         raise HTTPException(status_code=500, detail=f"Erro ao buscar posições: {str(e)}")
@@ -89,12 +112,26 @@ async def refresh_partner_positions(
     Faz uma chamada POST para atualizar os dados antes de buscar.
     """
     try:
+        # Gerar UUID único para a requisição
+        request_id = str(uuid.uuid4())
+        
         async with httpx.AsyncClient() as client:
             # Primeiro, atualiza os dados
             refresh_response = await client.post(
                 f"{BTG_API_URL}/refresh",
-                headers={"X-API-Key": api_key}
+                headers={
+                    "accept": "application/json",
+                    "x-id-partner-request": request_id,
+                    "access_token": ACCESS_TOKEN
+                }
             )
+            
+            if refresh_response.status_code == 401:
+                raise HTTPException(
+                    status_code=401,
+                    detail="Token de acesso não autorizado ou expirado"
+                )
+            
             refresh_response.raise_for_status()
             
             # Aguarda um momento para garantir que os dados foram atualizados
