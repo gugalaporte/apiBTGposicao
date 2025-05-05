@@ -1,5 +1,5 @@
 from fastapi import FastAPI, Depends, HTTPException, Header
-from typing import Optional
+from typing import Optional, List
 from pydantic import BaseModel
 from datetime import datetime
 import json
@@ -18,6 +18,10 @@ DATA_DIR.mkdir(exist_ok=True)
 BTG_API_URL = "https://api.btgpactual.com/iaas-api-position/api/v1/position/partner"
 API_KEY = "finacap2025"
 
+class Error(BaseModel):
+    code: Optional[str] = None
+    message: Optional[str] = None
+
 class PositionData(BaseModel):
     accountNumber: Optional[str] = None
     fileSize: int
@@ -26,7 +30,7 @@ class PositionData(BaseModel):
     url: str
 
 class WebhookPayload(BaseModel):
-    errors: list
+    errors: List[Error]
     response: PositionData
 
 async def verify_api_key(x_api_key: str = Header(...)):
@@ -109,6 +113,23 @@ async def receive_positions(
 ):
     """
     Endpoint da webhook para receber atualizações de posições.
+    
+    Exemplo de payload:
+    {
+      "errors": [
+        {
+          "code": null,
+          "message": null
+        }
+      ],
+      "response": {
+        "accountNumber": null,
+        "fileSize": 12,
+        "startDate": null,
+        "endDate": null,
+        "url": "https://invest-reports-dev.s3.amazonaws.com/iaas-aws-position-api/XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
+      }
+    }
     """
     try:
         # Converter os dados para dicionário
